@@ -16,7 +16,7 @@ Open `index.html` in a browser, or serve the folder with any static file server.
 
 At threat level 5, dodge Green Goblin's pumpkin bombs and use web shots to defeat him.
 
-Threat levels continue rising after that encounter. At threat level 10, Doctor Octopus attacks with mechanical tentacles.
+Threat levels continue rising after that encounter. At threat level 12, Doctor Octopus attacks with mechanical tentacles.
 
 ## GitHub Pages
 
