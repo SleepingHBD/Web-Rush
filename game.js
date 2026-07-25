@@ -200,26 +200,58 @@
   }
 
   function spawnObstacle() {
-    const lane = LANES[Math.floor(Math.random() * LANES.length)];
+    // Never place a new hazard through an existing token trail at the same
+    // depth. Since objects move at the same speed, that overlap would remain
+    // impossible for the entire approach.
+    const protectedTokenLanes = new Set(
+      state.objects
+        .filter((object) => object.kind === "token" && !object.hit && object.z > 0.8 && object.z < 1.4)
+        .map((object) => object.lane),
+    );
+    const availableLanes = LANES.filter((lane) => !protectedTokenLanes.has(lane));
+    if (availableLanes.length === 0) return false;
+
+    const lane = availableLanes[Math.floor(Math.random() * availableLanes.length)];
     const roll = Math.random();
     const type = roll < 0.44 ? "barrier" : roll < 0.75 ? "drone" : "vent";
     state.objects.push({ kind: "obstacle", type, lane, z: 1.08, hit: false });
 
     if (state.speed > 0.43 && Math.random() > 0.63) {
-      const options = LANES.filter((value) => value !== lane);
-      state.objects.push({
-        kind: "obstacle",
-        type: Math.random() > 0.5 ? "barrier" : "vent",
-        lane: options[Math.floor(Math.random() * options.length)],
-        z: 1.12,
-        hit: false,
-      });
+      const options = availableLanes.filter((value) => value !== lane);
+      if (options.length > 0) {
+        state.objects.push({
+          kind: "obstacle",
+          type: Math.random() > 0.5 ? "barrier" : "vent",
+          lane: options[Math.floor(Math.random() * options.length)],
+          z: 1.12,
+          hit: false,
+        });
+      }
     }
+    return true;
   }
 
   function spawnTokens() {
-    const lane = LANES[Math.floor(Math.random() * LANES.length)];
     const count = 3 + Math.floor(Math.random() * 4);
+    const tokenDepths = Array.from({ length: count }, (_, index) => 1.05 + index * 0.1);
+    const safeLanes = LANES.filter((lane) =>
+      tokenDepths.every(
+        (z) =>
+          !state.objects.some(
+            (object) =>
+              object.kind === "obstacle" &&
+              !object.hit &&
+              object.lane === lane &&
+              Math.abs(object.z - z) < 0.24,
+          ),
+      ),
+    );
+
+    // If every lane is temporarily occupied, wait for a cleaner opening
+    // instead of spawning bait that cannot be collected safely.
+    if (safeLanes.length === 0) return false;
+
+    const lane = safeLanes[Math.floor(Math.random() * safeLanes.length)];
     for (let i = 0; i < count; i += 1) {
       state.objects.push({
         kind: "token",
@@ -229,6 +261,7 @@
         hit: false,
       });
     }
+    return true;
   }
 
   function update(dt) {
@@ -257,8 +290,8 @@
       state.spawnTimer = Math.max(0.62, 1.22 - state.speed * 0.52) + Math.random() * 0.5;
     }
     if (state.tokenTimer <= 0) {
-      spawnTokens();
-      state.tokenTimer = 1.5 + Math.random() * 1.8;
+      const spawned = spawnTokens();
+      state.tokenTimer = spawned ? 1.5 + Math.random() * 1.8 : 0.3;
     }
 
     for (const object of state.objects) {
