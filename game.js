@@ -263,11 +263,13 @@
 
     for (const object of state.objects) {
       object.z -= state.speed * dt;
-      // Keep the collision window close to the player so the visual timing and
-      // the actual hit agree. The slightly narrower lane check also makes a
-      // last-second dodge feel fair.
-      if (object.hit || object.z > 0.12 || object.z < 0.025) continue;
-      const sameLane = Math.abs(object.lane - player.visualLane) < 0.36;
+      // Only collide while a hazard visually overlaps the runner. Once it has
+      // crossed the runner's feet it can no longer cause a delayed hit.
+      if (object.hit || object.z > 0.2 || object.z < 0.14) continue;
+      // Lane changes take effect with the input; visualLane only animates the
+      // character between lanes. Tokens retain visual overlap for collection.
+      const collisionLane = object.kind === "token" ? player.visualLane : player.lane;
+      const sameLane = Math.abs(object.lane - collisionLane) < 0.36;
       if (!sameLane) continue;
 
       if (object.kind === "token") {
