@@ -14,7 +14,7 @@ Open `index.html` in a browser, or serve the folder with any static file server.
 - `P` / `Esc` — pause
 - On touch devices: swipe left/right to move or up to jump
 
-At threat level 6, dodge Green Goblin's pumpkin bombs and use web shots to defeat him.
+At threat level 5, dodge Green Goblin's pumpkin bombs and use web shots to defeat him.
 
 ## GitHub Pages
 

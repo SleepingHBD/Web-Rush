@@ -259,7 +259,7 @@
     bossHealthFill.style.width = "100%";
     bossHud.hidden = false;
     bossAnnouncement.hidden = false;
-    bossAnnouncement.querySelector("span").textContent = "THREAT LEVEL 6";
+    bossAnnouncement.querySelector("span").textContent = "THREAT LEVEL 5";
     bossAnnouncement.querySelector("strong").textContent = "GREEN GOBLIN!";
     bossAnnouncement.querySelector("small").textContent = "DODGE BOMBS · PRESS F TO FIRE WEBS";
     webShotButton.hidden = false;
@@ -458,7 +458,7 @@
       threatLevelNode.textContent = String(state.level);
       tone(390 + state.level * 55, 0.13, "sawtooth", 0.045);
       setTimeout(() => tone(480 + state.level * 60, 0.1, "sawtooth", 0.035), 90);
-      if (state.level === 6) startBossFight();
+      if (state.level === 5) startBossFight();
     }
     state.spawnTimer -= dt;
     state.tokenTimer -= dt;
