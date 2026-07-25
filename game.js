@@ -596,6 +596,80 @@
     const slideAmount = player.slide > 0 ? 1 : 0;
     const bob = player.y > 0 ? 0 : Math.sin(player.runCycle * 2) * 3;
     const scale = Math.max(0.78, Math.min(1.18, state.height / 780));
+    const suitRed = "#ed1b2f";
+    const suitRedDark = "#9f1023";
+    const suitBlue = "#075f9f";
+    const suitBlueDark = "#063b6b";
+    const ink = "#050b14";
+    const webInk = "rgba(7, 13, 24, 0.7)";
+    const bodyLift = slideAmount * 23;
+
+    function strokeLimb(points, width, color) {
+      ctx.strokeStyle = ink;
+      ctx.lineWidth = width + 7;
+      ctx.beginPath();
+      ctx.moveTo(points[0][0], points[0][1]);
+      for (let i = 1; i < points.length; i += 1) {
+        ctx.lineTo(points[i][0], points[i][1]);
+      }
+      ctx.stroke();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.stroke();
+    }
+
+    function drawForearmWeb(x1, y1, x2, y2) {
+      const angle = Math.atan2(y2 - y1, x2 - x1);
+      const length = Math.hypot(x2 - x1, y2 - y1);
+      ctx.save();
+      ctx.translate(x1, y1);
+      ctx.rotate(angle);
+      ctx.strokeStyle = webInk;
+      ctx.lineWidth = 1;
+      for (let xPos = 5; xPos < length; xPos += 7) {
+        ctx.beginPath();
+        ctx.moveTo(xPos, -5);
+        ctx.quadraticCurveTo(xPos + 2, 0, xPos, 5);
+        ctx.stroke();
+      }
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(length, 0);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawChestSpider(y) {
+      ctx.save();
+      ctx.translate(0, y);
+      ctx.fillStyle = ink;
+      ctx.strokeStyle = ink;
+      ctx.lineCap = "round";
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 3.2, 6.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(0, -6, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      for (const side of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(side * 2, -4);
+        ctx.lineTo(side * 8, -9);
+        ctx.lineTo(side * 10, -5);
+        ctx.moveTo(side * 3, -1);
+        ctx.lineTo(side * 10, -2);
+        ctx.lineTo(side * 12, 2);
+        ctx.moveTo(side * 3, 2);
+        ctx.lineTo(side * 9, 6);
+        ctx.lineTo(side * 10, 11);
+        ctx.moveTo(side * 2, 4);
+        ctx.lineTo(side * 6, 10);
+        ctx.lineTo(side * 5, 14);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
 
     ctx.save();
     ctx.translate(x, baseY + bob);
@@ -616,91 +690,205 @@
     const legSwing = player.y > 0 ? -0.35 : Math.sin(player.runCycle) * 0.62;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    ctx.strokeStyle = "#075d9a";
-    ctx.lineWidth = 16;
+
+    const leftHip = [-9, -43 + bodyLift];
+    const leftKnee = [-13 + legSwing * 17, -10 + slideAmount * 18];
+    const leftFoot = [-23 - legSwing * 11, 14 + slideAmount * 11];
+    const rightHip = [9, -43 + bodyLift];
+    const rightKnee = [13 - legSwing * 17, -10 + slideAmount * 18];
+    const rightFoot = [23 + legSwing * 11, 14 + slideAmount * 11];
+
+    strokeLimb([leftHip, leftKnee, leftFoot], 17, suitBlue);
+    strokeLimb([rightHip, rightKnee, rightFoot], 17, suitBlue);
+
+    // Red boots, soles, and small blue suit highlights give the legs readable
+    // structure even when the runner is moving quickly.
+    strokeLimb([leftKnee, leftFoot], 13, suitRed);
+    strokeLimb([rightKnee, rightFoot], 13, suitRed);
+    ctx.strokeStyle = "rgba(91, 190, 241, 0.5)";
+    ctx.lineWidth = 2.2;
     ctx.beginPath();
-    ctx.moveTo(-8, -44 + slideAmount * 25);
-    ctx.lineTo(-12 + legSwing * 17, -9 + slideAmount * 18);
-    ctx.lineTo(-22 - legSwing * 11, 13 + slideAmount * 11);
-    ctx.moveTo(8, -44 + slideAmount * 25);
-    ctx.lineTo(12 - legSwing * 17, -9 + slideAmount * 18);
-    ctx.lineTo(22 + legSwing * 11, 13 + slideAmount * 11);
+    ctx.moveTo(leftHip[0] + 4, leftHip[1] + 2);
+    ctx.lineTo(leftKnee[0] + 5, leftKnee[1] - 2);
+    ctx.moveTo(rightHip[0] - 4, rightHip[1] + 2);
+    ctx.lineTo(rightKnee[0] - 5, rightKnee[1] - 2);
+    ctx.stroke();
+    ctx.strokeStyle = ink;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(leftFoot[0] - 8, leftFoot[1] + 3);
+    ctx.lineTo(leftFoot[0] + 8, leftFoot[1] + 3);
+    ctx.moveTo(rightFoot[0] - 8, rightFoot[1] + 3);
+    ctx.lineTo(rightFoot[0] + 8, rightFoot[1] + 3);
     ctx.stroke();
 
-    ctx.strokeStyle = "#07101f";
-    ctx.lineWidth = 21;
-    ctx.globalCompositeOperation = "destination-over";
-    ctx.stroke();
-    ctx.globalCompositeOperation = "source-over";
-
-    ctx.fillStyle = "#ef233c";
-    ctx.strokeStyle = "#07101f";
+    // Athletic torso with dark side panels and a red center panel.
+    const torsoGradient = ctx.createLinearGradient(-22, 0, 22, 0);
+    torsoGradient.addColorStop(0, suitRedDark);
+    torsoGradient.addColorStop(0.25, suitRed);
+    torsoGradient.addColorStop(0.72, "#f12a38");
+    torsoGradient.addColorStop(1, suitRedDark);
+    ctx.fillStyle = torsoGradient;
+    ctx.strokeStyle = ink;
     ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.moveTo(-20, -88 + slideAmount * 24);
-    ctx.quadraticCurveTo(0, -98 + slideAmount * 24, 20, -88 + slideAmount * 24);
-    ctx.lineTo(15, -41 + slideAmount * 22);
-    ctx.quadraticCurveTo(0, -33 + slideAmount * 22, -15, -41 + slideAmount * 22);
+    ctx.moveTo(-21, -88 + bodyLift);
+    ctx.quadraticCurveTo(0, -99 + bodyLift, 21, -88 + bodyLift);
+    ctx.quadraticCurveTo(20, -64 + bodyLift, 15, -41 + bodyLift);
+    ctx.quadraticCurveTo(0, -33 + bodyLift, -15, -41 + bodyLift);
+    ctx.quadraticCurveTo(-20, -64 + bodyLift, -21, -88 + bodyLift);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
 
-    ctx.fillStyle = "#075d9a";
+    ctx.fillStyle = suitBlue;
     ctx.beginPath();
-    ctx.moveTo(-18, -61 + slideAmount * 23);
-    ctx.lineTo(18, -61 + slideAmount * 23);
-    ctx.lineTo(15, -41 + slideAmount * 22);
-    ctx.quadraticCurveTo(0, -33 + slideAmount * 22, -15, -41 + slideAmount * 22);
+    ctx.moveTo(-18, -64 + bodyLift);
+    ctx.quadraticCurveTo(-12, -58 + bodyLift, -13, -42 + bodyLift);
+    ctx.quadraticCurveTo(0, -34 + bodyLift, 13, -42 + bodyLift);
+    ctx.quadraticCurveTo(12, -58 + bodyLift, 18, -64 + bodyLift);
+    ctx.lineTo(13, -41 + bodyLift);
+    ctx.quadraticCurveTo(0, -32 + bodyLift, -13, -41 + bodyLift);
     ctx.closePath();
     ctx.fill();
+    ctx.strokeStyle = suitBlueDark;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Torso webbing follows the body instead of reading as a flat grid.
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(-19, -88 + bodyLift);
+    ctx.quadraticCurveTo(0, -96 + bodyLift, 19, -88 + bodyLift);
+    ctx.lineTo(17, -62 + bodyLift);
+    ctx.quadraticCurveTo(0, -55 + bodyLift, -17, -62 + bodyLift);
+    ctx.closePath();
+    ctx.clip();
+    ctx.strokeStyle = webInk;
+    ctx.lineWidth = 1;
+    for (const ribY of [-85, -77, -69, -61]) {
+      ctx.beginPath();
+      ctx.ellipse(0, ribY + bodyLift, 19, 5, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    for (const endX of [-17, -9, 9, 17]) {
+      ctx.beginPath();
+      ctx.moveTo(0, -94 + bodyLift);
+      ctx.quadraticCurveTo(endX * 0.7, -76 + bodyLift, endX, -57 + bodyLift);
+      ctx.stroke();
+    }
+    ctx.restore();
+    drawChestSpider(-74 + bodyLift);
+
+    // Collar and shoulder seams add depth around the neck.
+    ctx.fillStyle = suitRedDark;
+    ctx.beginPath();
+    ctx.ellipse(0, -91 + bodyLift, 8, 3.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255, 119, 126, 0.75)";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(-18, -87 + bodyLift);
+    ctx.quadraticCurveTo(0, -95 + bodyLift, 18, -87 + bodyLift);
+    ctx.stroke();
 
     const armSwing = player.y > 0 ? 0.9 : Math.sin(player.runCycle) * 0.7;
-    ctx.strokeStyle = "#ef233c";
-    ctx.lineWidth = 13;
-    ctx.beginPath();
-    ctx.moveTo(-16, -82 + slideAmount * 23);
-    ctx.lineTo(-28 - armSwing * 13, -58 + slideAmount * 25);
-    ctx.lineTo(-20 - armSwing * 19, -34 + slideAmount * 20);
-    ctx.moveTo(16, -82 + slideAmount * 23);
-    ctx.lineTo(28 + armSwing * 13, -58 + slideAmount * 25);
-    ctx.lineTo(20 + armSwing * 19, -34 + slideAmount * 20);
-    ctx.stroke();
+    const leftShoulder = [-17, -84 + bodyLift];
+    const leftElbow = [-29 - armSwing * 13, -59 + slideAmount * 25];
+    const leftHand = [-21 - armSwing * 19, -33 + slideAmount * 20];
+    const rightShoulder = [17, -84 + bodyLift];
+    const rightElbow = [29 + armSwing * 13, -59 + slideAmount * 25];
+    const rightHand = [21 + armSwing * 19, -33 + slideAmount * 20];
+    strokeLimb([leftShoulder, leftElbow], 14, suitBlue);
+    strokeLimb([rightShoulder, rightElbow], 14, suitBlue);
+    strokeLimb([leftElbow, leftHand], 12, suitRed);
+    strokeLimb([rightElbow, rightHand], 12, suitRed);
+    drawForearmWeb(leftElbow[0], leftElbow[1], leftHand[0], leftHand[1]);
+    drawForearmWeb(rightElbow[0], rightElbow[1], rightHand[0], rightHand[1]);
 
-    ctx.fillStyle = "#ef233c";
-    ctx.strokeStyle = "#07101f";
+    // Gloves use a compact clenched-fist shape rather than a rounded line cap.
+    for (const hand of [leftHand, rightHand]) {
+      ctx.fillStyle = suitRed;
+      ctx.strokeStyle = ink;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.ellipse(hand[0], hand[1], 7, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.strokeStyle = webInk;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(hand[0] - 4, hand[1]);
+      ctx.lineTo(hand[0] + 4, hand[1]);
+      ctx.moveTo(hand[0], hand[1] - 4);
+      ctx.lineTo(hand[0], hand[1] + 4);
+      ctx.stroke();
+    }
+
+    // Mask with a subtle shaded edge, raised center seam, and expressive
+    // layered lenses.
+    const maskGradient = ctx.createLinearGradient(-18, 0, 18, 0);
+    maskGradient.addColorStop(0, suitRedDark);
+    maskGradient.addColorStop(0.38, suitRed);
+    maskGradient.addColorStop(0.72, "#ff3443");
+    maskGradient.addColorStop(1, suitRedDark);
+    ctx.fillStyle = maskGradient;
+    ctx.strokeStyle = ink;
     ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.ellipse(0, -109 + slideAmount * 23, 18, 23, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, -110 + bodyLift, 18.5, 23.5, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
 
-    ctx.strokeStyle = "rgba(10,16,30,.65)";
+    ctx.strokeStyle = webInk;
     ctx.lineWidth = 1.1;
     for (let i = -12; i <= 12; i += 6) {
       ctx.beginPath();
-      ctx.moveTo(0, -131 + slideAmount * 23);
-      ctx.quadraticCurveTo(i * 1.3, -110 + slideAmount * 23, i, -87 + slideAmount * 23);
+      ctx.moveTo(0, -133 + bodyLift);
+      ctx.quadraticCurveTo(i * 1.3, -111 + bodyLift, i, -87 + bodyLift);
       ctx.stroke();
     }
-    for (let y = -125; y <= -94; y += 8) {
+    for (let y = -126; y <= -94; y += 8) {
       ctx.beginPath();
-      ctx.ellipse(0, y + slideAmount * 23, 16 - Math.abs(y + 109) * 0.22, 5, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, y + bodyLift, 16 - Math.abs(y + 110) * 0.22, 5, 0, 0, Math.PI * 2);
       ctx.stroke();
     }
-
-    ctx.fillStyle = "#f6f4de";
-    ctx.strokeStyle = "#07101f";
-    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = "rgba(255, 110, 118, 0.75)";
+    ctx.lineWidth = 1.2;
     ctx.beginPath();
-    ctx.moveTo(-13, -116 + slideAmount * 23);
-    ctx.quadraticCurveTo(-5, -114 + slideAmount * 23, -3, -103 + slideAmount * 23);
-    ctx.quadraticCurveTo(-12, -104 + slideAmount * 23, -13, -116 + slideAmount * 23);
+    ctx.moveTo(2, -130 + bodyLift);
+    ctx.quadraticCurveTo(8, -119 + bodyLift, 7, -99 + bodyLift);
+    ctx.stroke();
+
+    ctx.fillStyle = ink;
+    ctx.strokeStyle = ink;
+    ctx.lineWidth = 4.5;
+    ctx.beginPath();
+    ctx.moveTo(-14, -118 + bodyLift);
+    ctx.quadraticCurveTo(-6, -118 + bodyLift, -3, -103 + bodyLift);
+    ctx.quadraticCurveTo(-13, -105 + bodyLift, -14, -118 + bodyLift);
     ctx.fill();
     ctx.stroke();
     ctx.beginPath();
-    ctx.moveTo(13, -116 + slideAmount * 23);
-    ctx.quadraticCurveTo(5, -114 + slideAmount * 23, 3, -103 + slideAmount * 23);
-    ctx.quadraticCurveTo(12, -104 + slideAmount * 23, 13, -116 + slideAmount * 23);
+    ctx.moveTo(14, -118 + bodyLift);
+    ctx.quadraticCurveTo(6, -118 + bodyLift, 3, -103 + bodyLift);
+    ctx.quadraticCurveTo(13, -105 + bodyLift, 14, -118 + bodyLift);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = "#f8fbf4";
+    ctx.strokeStyle = "#9ddcf0";
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(-12.5, -116.5 + bodyLift);
+    ctx.quadraticCurveTo(-6.5, -115.8 + bodyLift, -4.3, -105.5 + bodyLift);
+    ctx.quadraticCurveTo(-11.3, -107 + bodyLift, -12.5, -116.5 + bodyLift);
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(12.5, -116.5 + bodyLift);
+    ctx.quadraticCurveTo(6.5, -115.8 + bodyLift, 4.3, -105.5 + bodyLift);
+    ctx.quadraticCurveTo(11.3, -107 + bodyLift, 12.5, -116.5 + bodyLift);
     ctx.fill();
     ctx.stroke();
 
