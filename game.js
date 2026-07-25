@@ -354,7 +354,9 @@
       }
     }
 
-    state.objects = state.objects.filter((object) => object.z > -0.08 && !object.hit);
+    // At z 0.035 the object's ground point reaches the bottom edge. Remove it
+    // immediately so perspective clamping cannot leave a frozen hazard behind.
+    state.objects = state.objects.filter((object) => object.z > 0.035 && !object.hit);
     state.flash = Math.max(0, state.flash - dt * 2.4);
     state.shake = Math.max(0, state.shake - dt * 42);
     scoreNode.textContent = pad(state.score);
