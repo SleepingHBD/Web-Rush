@@ -263,8 +263,11 @@
 
     for (const object of state.objects) {
       object.z -= state.speed * dt;
-      if (object.hit || object.z > 0.17 || object.z < 0.015) continue;
-      const sameLane = Math.abs(object.lane - player.visualLane) < 0.43;
+      // Keep the collision window close to the player so the visual timing and
+      // the actual hit agree. The slightly narrower lane check also makes a
+      // last-second dodge feel fair.
+      if (object.hit || object.z > 0.12 || object.z < 0.025) continue;
+      const sameLane = Math.abs(object.lane - player.visualLane) < 0.36;
       if (!sameLane) continue;
 
       if (object.kind === "token") {
@@ -275,8 +278,8 @@
         tone(680 + (state.webs % 4) * 80, 0.07, "sine", 0.045);
       } else {
         const avoided =
-          (object.type === "barrier" && player.y > 76) ||
-          (object.type === "vent" && player.y > 58) ||
+          (object.type === "barrier" && player.y > 44) ||
+          (object.type === "vent" && player.y > 34) ||
           (object.type === "drone" && player.slide > 0);
         if (!avoided) {
           object.hit = true;
@@ -476,7 +479,8 @@
     const ground = p.y;
     ctx.save();
     ctx.translate(x, ground);
-    ctx.scale(p.scale, p.scale);
+    // Hazards are intentionally oversized for readability at rooftop speed.
+    ctx.scale(p.scale * 1.3, p.scale * 1.3);
 
     if (object.type === "barrier") {
       ctx.fillStyle = "#e8383f";
