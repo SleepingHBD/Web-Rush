@@ -17,6 +17,7 @@
   const websNode = document.querySelector("#webs");
   const threatLevelNode = document.querySelector("#threatLevel");
   const bossHud = document.querySelector("#bossHud");
+  const bossName = document.querySelector("#bossName");
   const bossHealthFill = document.querySelector("#bossHealthFill");
   const bossAnnouncement = document.querySelector("#bossAnnouncement");
   const webShotButton = document.querySelector("#webShotButton");
@@ -41,8 +42,9 @@
     webShots: [],
     boss: {
       active: false,
-      triggered: false,
-      defeated: false,
+      type: null,
+      goblinDefeated: false,
+      octopusDefeated: false,
       health: 6,
       maxHealth: 6,
       lane: 0,
@@ -153,8 +155,9 @@
     state.webShots = [];
     Object.assign(state.boss, {
       active: false,
-      triggered: false,
-      defeated: false,
+      type: null,
+      goblinDefeated: false,
+      octopusDefeated: false,
       health: 6,
       maxHealth: 6,
       lane: 0,
@@ -238,17 +241,17 @@
     tone(330, 0.1, "sine", 0.04);
   }
 
-  function startBossFight() {
-    if (state.boss.triggered) return;
+  function startBossFight(type) {
+    if (state.boss.active) return;
+    const isOctopus = type === "octopus";
     Object.assign(state.boss, {
       active: true,
-      triggered: true,
-      defeated: false,
-      health: 6,
-      maxHealth: 6,
+      type,
+      health: isOctopus ? 8 : 6,
+      maxHealth: isOctopus ? 8 : 6,
       lane: 0,
       visualLane: 0,
-      moveTimer: 1.1,
+      moveTimer: isOctopus ? 1.35 : 1.1,
       attackTimer: 2.2,
       introTimer: 2.4,
       messageTimer: 0,
@@ -259,9 +262,12 @@
     bossHealthFill.style.width = "100%";
     bossHud.hidden = false;
     bossAnnouncement.hidden = false;
-    bossAnnouncement.querySelector("span").textContent = "THREAT LEVEL 5";
-    bossAnnouncement.querySelector("strong").textContent = "GREEN GOBLIN!";
-    bossAnnouncement.querySelector("small").textContent = "DODGE BOMBS · PRESS F TO FIRE WEBS";
+    bossName.textContent = isOctopus ? "DOCTOR OCTOPUS" : "GREEN GOBLIN";
+    bossAnnouncement.querySelector("span").textContent = isOctopus ? "THREAT LEVEL 7" : "THREAT LEVEL 5";
+    bossAnnouncement.querySelector("strong").textContent = isOctopus ? "DOCTOR OCTOPUS!" : "GREEN GOBLIN!";
+    bossAnnouncement.querySelector("small").textContent = isOctopus
+      ? "DODGE TENTACLES · PRESS F TO FIRE WEBS"
+      : "DODGE BOMBS · PRESS F TO FIRE WEBS";
     webShotButton.hidden = false;
     state.flash = 0.9;
     tone(150, 0.35, "sawtooth", 0.065);
@@ -306,13 +312,38 @@
     tone(135, 0.12, "square", 0.035);
   }
 
+  function strikeWithTentacle() {
+    const firstLane = Math.random() < 0.7 ? player.lane : LANES[Math.floor(Math.random() * LANES.length)];
+    state.objects.push({
+      kind: "obstacle",
+      type: "tentacle",
+      lane: firstLane,
+      z: 0.84,
+      hit: false,
+    });
+
+    if (state.boss.health <= 4 && Math.random() < 0.5) {
+      const otherLanes = LANES.filter((lane) => lane !== firstLane);
+      state.objects.push({
+        kind: "obstacle",
+        type: "tentacle",
+        lane: otherLanes[Math.floor(Math.random() * otherLanes.length)],
+        z: 0.91,
+        hit: false,
+      });
+    }
+    tone(95, 0.16, "sawtooth", 0.045);
+  }
+
   function defeatBoss() {
+    const wasOctopus = state.boss.type === "octopus";
     state.boss.active = false;
-    state.boss.defeated = true;
+    if (wasOctopus) state.boss.octopusDefeated = true;
+    else state.boss.goblinDefeated = true;
     state.boss.messageTimer = 2.2;
     state.webShots = [];
     state.objects = [];
-    state.score += 3000;
+    state.score += wasOctopus ? 5000 : 3000;
     state.flash = 1;
     state.shake = 10;
     state.spawnTimer = 1.4;
@@ -321,8 +352,10 @@
     webShotButton.hidden = true;
     bossAnnouncement.hidden = false;
     bossAnnouncement.querySelector("span").textContent = "CITY SAVED";
-    bossAnnouncement.querySelector("strong").textContent = "GOBLIN DEFEATED!";
-    bossAnnouncement.querySelector("small").textContent = "+3,000 BONUS";
+    bossAnnouncement.querySelector("strong").textContent = wasOctopus
+      ? "DOC OCK DEFEATED!"
+      : "GOBLIN DEFEATED!";
+    bossAnnouncement.querySelector("small").textContent = wasOctopus ? "+5,000 BONUS" : "+3,000 BONUS";
     tone(420, 0.13, "sawtooth", 0.05);
     setTimeout(() => tone(560, 0.16, "sawtooth", 0.05), 110);
     setTimeout(() => tone(720, 0.22, "sawtooth", 0.045), 230);
@@ -346,8 +379,10 @@
       boss.moveTimer = 0.85 + Math.random() * 0.65;
     }
     if (boss.attackTimer <= 0) {
-      throwPumpkinBomb();
-      boss.attackTimer = 0.72 + Math.random() * 0.42;
+      if (boss.type === "octopus") strikeWithTentacle();
+      else throwPumpkinBomb();
+      boss.attackTimer =
+        boss.type === "octopus" ? 0.62 + Math.random() * 0.34 : 0.72 + Math.random() * 0.42;
     }
 
     for (const shot of state.webShots) {
@@ -447,18 +482,33 @@
     if (state.mode !== "playing") return;
 
     state.distance += state.speed * dt * 120;
-    state.difficulty = Math.min(1, state.distance / 2500);
-    state.speed = 0.34 + state.difficulty * 0.38;
+    state.difficulty = Math.min(1.35, state.distance / 2500);
+    state.speed = 0.34 + state.difficulty * 0.34;
     state.score += dt * (90 + state.speed * 160) * (1 + state.difficulty * 0.45);
 
-    const nextLevel = Math.min(6, 1 + Math.floor(state.distance / 500));
+    const nextLevel = 1 + Math.floor(state.distance / 500);
     if (nextLevel > state.level) {
       state.level = nextLevel;
       state.flash = 0.65;
       threatLevelNode.textContent = String(state.level);
       tone(390 + state.level * 55, 0.13, "sawtooth", 0.045);
       setTimeout(() => tone(480 + state.level * 60, 0.1, "sawtooth", 0.035), 90);
-      if (state.level === 5) startBossFight();
+    }
+    if (
+      state.level >= 5 &&
+      !state.boss.goblinDefeated &&
+      !state.boss.active &&
+      state.boss.messageTimer === 0
+    ) {
+      startBossFight("goblin");
+    } else if (
+      state.level >= 7 &&
+      state.boss.goblinDefeated &&
+      !state.boss.octopusDefeated &&
+      !state.boss.active &&
+      state.boss.messageTimer === 0
+    ) {
+      startBossFight("octopus");
     }
     state.spawnTimer -= dt;
     state.tokenTimer -= dt;
@@ -478,8 +528,8 @@
     } else {
       if (state.spawnTimer <= 0) {
         spawnObstacle();
-        const baseGap = 1.18 - state.difficulty * 0.52;
-        const randomGap = 0.46 - state.difficulty * 0.2;
+        const baseGap = Math.max(0.58, 1.18 - state.difficulty * 0.48);
+        const randomGap = Math.max(0.18, 0.46 - state.difficulty * 0.2);
         state.spawnTimer = baseGap + Math.random() * randomGap;
       }
       if (state.tokenTimer <= 0) {
@@ -519,7 +569,8 @@
           (object.type === "barrier" && player.y > 28) ||
           (object.type === "vent" && player.y > 20) ||
           (object.type === "drone" && player.y > 26) ||
-          (object.type === "pumpkin" && player.y > 24);
+          (object.type === "pumpkin" && player.y > 24) ||
+          (object.type === "tentacle" && player.y > 30);
         if (!avoided) {
           object.hit = true;
           gameOver();
@@ -801,6 +852,43 @@
       ctx.stroke();
       ctx.fillStyle = "#4d7d20";
       ctx.fillRect(-3, -29, 6, 10);
+    } else if (object.type === "tentacle") {
+      ctx.strokeStyle = "#111722";
+      ctx.lineWidth = 20;
+      ctx.beginPath();
+      ctx.moveTo(-30, 2);
+      ctx.quadraticCurveTo(-25, -28, -4, -27);
+      ctx.quadraticCurveTo(20, -27, 27, -50);
+      ctx.stroke();
+      ctx.strokeStyle = "#8c98a4";
+      ctx.lineWidth = 13;
+      ctx.stroke();
+      ctx.strokeStyle = "#d4dde3";
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 5; i += 1) {
+        const x = -27 + i * 11;
+        const y = -7 - Math.sin((i / 4) * Math.PI) * 21;
+        ctx.beginPath();
+        ctx.arc(x, y, 6, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.save();
+      ctx.translate(28, -52);
+      ctx.rotate(-0.2);
+      ctx.fillStyle = "#505b66";
+      ctx.strokeStyle = "#10151e";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(-4, 5);
+      ctx.lineTo(-21, -9);
+      ctx.lineTo(-16, 10);
+      ctx.lineTo(-3, 13);
+      ctx.lineTo(9, 24);
+      ctx.lineTo(10, 6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
     } else {
       // The drone is a low rooftop hazard now and is cleared by jumping.
       ctx.translate(0, -22);
@@ -838,7 +926,7 @@
     };
   }
 
-  function drawBoss(time) {
+  function drawGreenGoblin(time) {
     if (!state.boss.active) return;
     const position = bossScreenPosition();
     const scale = Math.max(0.72, Math.min(1.12, state.height / 760));
@@ -984,6 +1072,144 @@
     ctx.quadraticCurveTo(0, -39, 9, -47);
     ctx.stroke();
     ctx.restore();
+  }
+
+  function drawDoctorOctopus(time) {
+    const position = bossScreenPosition();
+    const scale = Math.max(0.72, Math.min(1.12, state.height / 760));
+    const bob = Math.sin(time * 0.0035) * 5;
+    const hurt = state.flash > 0.25;
+    ctx.save();
+    ctx.translate(position.x, position.y + bob);
+    ctx.scale(scale, scale);
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    // Four articulated mechanical arms reach out behind him.
+    const armPaths = [
+      [[-18, -21], [-58, -48], [-82, -32], [-96, -57]],
+      [[18, -21], [58, -48], [82, -32], [96, -57]],
+      [[-17, 2], [-56, 28], [-76, 55], [-101, 45]],
+      [[17, 2], [56, 28], [76, 55], [101, 45]],
+    ];
+    for (let armIndex = 0; armIndex < armPaths.length; armIndex += 1) {
+      const points = armPaths[armIndex].map(([x, y], index) => [
+        x,
+        y + Math.sin(time * 0.004 + armIndex * 1.4 + index) * 6,
+      ]);
+      ctx.strokeStyle = "#101722";
+      ctx.lineWidth = 17;
+      ctx.beginPath();
+      ctx.moveTo(points[0][0], points[0][1]);
+      for (let i = 1; i < points.length; i += 1) ctx.lineTo(points[i][0], points[i][1]);
+      ctx.stroke();
+      ctx.strokeStyle = "#8996a2";
+      ctx.lineWidth = 11;
+      ctx.stroke();
+      ctx.strokeStyle = "#d6dee4";
+      ctx.lineWidth = 2;
+      for (let i = 1; i < points.length; i += 1) {
+        ctx.beginPath();
+        ctx.arc(points[i][0], points[i][1], 7, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      const claw = points[points.length - 1];
+      ctx.save();
+      ctx.translate(claw[0], claw[1]);
+      ctx.rotate(armIndex % 2 ? -0.35 : 0.35);
+      ctx.fillStyle = "#58636e";
+      ctx.strokeStyle = "#101722";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(-19, -12);
+      ctx.lineTo(-13, 7);
+      ctx.lineTo(0, 11);
+      ctx.lineTo(14, 21);
+      ctx.lineTo(13, 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Dark green coat and harness.
+    ctx.fillStyle = "#2c5d45";
+    ctx.strokeStyle = "#0a1018";
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(-25, -43);
+    ctx.quadraticCurveTo(0, -54, 25, -43);
+    ctx.lineTo(31, 22);
+    ctx.lineTo(13, 13);
+    ctx.lineTo(0, 27);
+    ctx.lineTo(-13, 13);
+    ctx.lineTo(-31, 22);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = hurt ? "#9effb5" : "#4f9b69";
+    ctx.beginPath();
+    ctx.moveTo(-17, -39);
+    ctx.lineTo(17, -39);
+    ctx.lineTo(13, 12);
+    ctx.lineTo(-13, 12);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = "#b3bec7";
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(-20, -31);
+    ctx.lineTo(20, 4);
+    ctx.moveTo(20, -31);
+    ctx.lineTo(-20, 4);
+    ctx.stroke();
+    ctx.fillStyle = "#4a555f";
+    ctx.beginPath();
+    ctx.arc(0, -13, 9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Head, swept hair, goggles, and determined expression.
+    ctx.fillStyle = hurt ? "#ffe0ca" : "#d9a77e";
+    ctx.strokeStyle = "#0a1018";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.ellipse(0, -62, 20, 24, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "#4b392f";
+    ctx.beginPath();
+    ctx.moveTo(-19, -69);
+    ctx.quadraticCurveTo(-10, -91, 1, -81);
+    ctx.quadraticCurveTo(12, -92, 20, -69);
+    ctx.quadraticCurveTo(8, -79, -19, -69);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "#151b22";
+    ctx.beginPath();
+    ctx.roundRect(-18, -69, 15, 10, 3);
+    ctx.roundRect(3, -69, 15, 10, 3);
+    ctx.fill();
+    ctx.strokeStyle = "#a8e7e8";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.strokeStyle = "#151b22";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-3, -64);
+    ctx.lineTo(3, -64);
+    ctx.moveTo(-10, -51);
+    ctx.quadraticCurveTo(0, -45, 11, -52);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawBoss(time) {
+    if (!state.boss.active) return;
+    if (state.boss.type === "octopus") drawDoctorOctopus(time);
+    else drawGreenGoblin(time);
   }
 
   function drawWebShots() {

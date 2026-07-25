@@ -188,8 +188,9 @@ a {
 
 .threat-level strong {
   display: grid;
-  width: 23px;
+  min-width: 23px;
   height: 23px;
+  padding: 0 4px;
   place-items: center;
   background: var(--red);
   color: var(--white);

@@ -10,11 +10,13 @@ Open `index.html` in a browser, or serve the folder with any static file server.
 
 - `←` / `A` and `→` / `D` — move between lanes
 - `↑` / `W` / `Space` — jump
-- `F` / `X` — fire a web shot during the Green Goblin fight
+- `F` / `X` — fire a web shot during boss fights
 - `P` / `Esc` — pause
 - On touch devices: swipe left/right to move or up to jump
 
 At threat level 5, dodge Green Goblin's pumpkin bombs and use web shots to defeat him.
+
+Threat levels continue rising after that encounter. At threat level 7, Doctor Octopus attacks with mechanical tentacles.
 
 ## GitHub Pages
 
