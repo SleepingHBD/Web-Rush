@@ -263,7 +263,7 @@
     bossHud.hidden = false;
     bossAnnouncement.hidden = false;
     bossName.textContent = isOctopus ? "DOCTOR OCTOPUS" : "GREEN GOBLIN";
-    bossAnnouncement.querySelector("span").textContent = isOctopus ? "THREAT LEVEL 7" : "THREAT LEVEL 5";
+    bossAnnouncement.querySelector("span").textContent = isOctopus ? "THREAT LEVEL 10" : "THREAT LEVEL 5";
     bossAnnouncement.querySelector("strong").textContent = isOctopus ? "DOCTOR OCTOPUS!" : "GREEN GOBLIN!";
     bossAnnouncement.querySelector("small").textContent = isOctopus
       ? "DODGE TENTACLES · PRESS F TO FIRE WEBS"
@@ -502,7 +502,7 @@
     ) {
       startBossFight("goblin");
     } else if (
-      state.level >= 7 &&
+      state.level >= 10 &&
       state.boss.goblinDefeated &&
       !state.boss.octopusDefeated &&
       !state.boss.active &&
