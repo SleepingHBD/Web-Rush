@@ -10,9 +10,8 @@ Open `index.html` in a browser, or serve the folder with any static file server.
 
 - `←` / `A` and `→` / `D` — move between lanes
 - `↑` / `W` / `Space` — jump
-- `↓` / `S` — slide
 - `P` / `Esc` — pause
-- On touch devices: swipe left/right/up/down
+- On touch devices: swipe left/right to move or up to jump
 
 ## GitHub Pages
 

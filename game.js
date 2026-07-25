@@ -52,7 +52,6 @@
     visualLane: 0,
     y: 0,
     vy: 0,
-    slide: 0,
     runCycle: 0,
   };
 
@@ -138,7 +137,6 @@
     player.visualLane = 0;
     player.y = 0;
     player.vy = 0;
-    player.slide = 0;
     startScreen.hidden = true;
     gameOverScreen.hidden = true;
     pauseButton.hidden = false;
@@ -194,15 +192,9 @@
   }
 
   function jump() {
-    if (state.mode !== "playing" || player.y > 1 || player.slide > 0) return;
+    if (state.mode !== "playing" || player.y > 1) return;
     player.vy = 780;
     tone(330, 0.1, "sine", 0.04);
-  }
-
-  function slide() {
-    if (state.mode !== "playing" || player.y > 16) return;
-    player.slide = 0.62;
-    tone(170, 0.08, "triangle", 0.035);
   }
 
   function spawnObstacle() {
@@ -307,8 +299,6 @@
         player.vy = 0;
       }
     }
-    player.slide = Math.max(0, player.slide - dt);
-
     if (state.spawnTimer <= 0) {
       spawnObstacle();
       const baseGap = 1.18 - state.difficulty * 0.52;
@@ -345,7 +335,7 @@
         const avoided =
           (object.type === "barrier" && player.y > 28) ||
           (object.type === "vent" && player.y > 20) ||
-          (object.type === "drone" && (player.slide > 0 || player.y > 92));
+          (object.type === "drone" && player.y > 26);
         if (!avoided) {
           object.hit = true;
           gameOver();
@@ -356,14 +346,7 @@
 
     state.objects = state.objects.filter((object) => {
       if (object.hit) return false;
-      if (object.kind === "obstacle" && object.type === "drone") {
-        // Drones float above their ground anchor, so remove them based on their
-        // own lower edge rather than the rooftop point beneath them.
-        const p = perspective(object.z);
-        const droneBottom = p.y + (-70 + 18) * p.scale * 1.3;
-        return droneBottom < state.height;
-      }
-      // Ground objects leave as soon as their anchor reaches the bottom edge.
+      // All hazards now share a ground-aligned exit point.
       return object.z > 0.035;
     });
     state.flash = Math.max(0, state.flash - dt * 2.4);
@@ -375,9 +358,7 @@
   function perspective(z) {
     const horizon = state.height * 0.43;
     const bottom = state.height * 1.03;
-    // Airborne objects may travel slightly below the ground anchor before
-    // their artwork reaches the screen edge.
-    const depth = Math.max(-0.3, Math.min(1, z));
+    const depth = Math.max(0, Math.min(1, z));
     const eased = Math.pow(1 - depth, 1.65);
     return {
       y: horizon + (bottom - horizon) * eased,
@@ -602,7 +583,8 @@
         ctx.stroke();
       }
     } else {
-      ctx.translate(0, -70);
+      // The drone is a low rooftop hazard now and is cleared by jumping.
+      ctx.translate(0, -22);
       ctx.fillStyle = "#273342";
       ctx.strokeStyle = "#07101f";
       ctx.lineWidth = 4;
@@ -633,7 +615,6 @@
     const baseY = state.height * 0.88 - player.y;
     const p = perspective(0.08);
     const x = laneX(player.visualLane, p);
-    const slideAmount = player.slide > 0 ? 1 : 0;
     const bob = player.y > 0 ? 0 : Math.sin(player.runCycle * 2) * 3;
     const scale = Math.max(0.78, Math.min(1.18, state.height / 780));
     const suitRed = "#ed1b2f";
@@ -642,7 +623,7 @@
     const suitBlueDark = "#063b6b";
     const ink = "#050b14";
     const webInk = "rgba(7, 13, 24, 0.7)";
-    const bodyLift = slideAmount * 23;
+    const bodyLift = 0;
 
     function strokeLimb(points, width, color) {
       ctx.strokeStyle = ink;
@@ -722,21 +703,16 @@
     ctx.fill();
     ctx.globalAlpha = 1;
 
-    if (slideAmount) {
-      ctx.rotate(-0.22);
-      ctx.translate(0, 5);
-    }
-
     const legSwing = player.y > 0 ? -0.35 : Math.sin(player.runCycle) * 0.62;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
     const leftHip = [-9, -43 + bodyLift];
-    const leftKnee = [-13 + legSwing * 17, -10 + slideAmount * 18];
-    const leftFoot = [-23 - legSwing * 11, 14 + slideAmount * 11];
+    const leftKnee = [-13 + legSwing * 17, -10];
+    const leftFoot = [-23 - legSwing * 11, 14];
     const rightHip = [9, -43 + bodyLift];
-    const rightKnee = [13 - legSwing * 17, -10 + slideAmount * 18];
-    const rightFoot = [23 + legSwing * 11, 14 + slideAmount * 11];
+    const rightKnee = [13 - legSwing * 17, -10];
+    const rightFoot = [23 + legSwing * 11, 14];
 
     strokeLimb([leftHip, leftKnee, leftFoot], 17, suitBlue);
     strokeLimb([rightHip, rightKnee, rightFoot], 17, suitBlue);
@@ -834,11 +810,11 @@
 
     const armSwing = player.y > 0 ? 0.9 : Math.sin(player.runCycle) * 0.7;
     const leftShoulder = [-17, -84 + bodyLift];
-    const leftElbow = [-29 - armSwing * 13, -59 + slideAmount * 25];
-    const leftHand = [-21 - armSwing * 19, -33 + slideAmount * 20];
+    const leftElbow = [-29 - armSwing * 13, -59];
+    const leftHand = [-21 - armSwing * 19, -33];
     const rightShoulder = [17, -84 + bodyLift];
-    const rightElbow = [29 + armSwing * 13, -59 + slideAmount * 25];
-    const rightHand = [21 + armSwing * 19, -33 + slideAmount * 20];
+    const rightElbow = [29 + armSwing * 13, -59];
+    const rightHand = [21 + armSwing * 19, -33];
     strokeLimb([leftShoulder, leftElbow], 14, suitBlue);
     strokeLimb([rightShoulder, rightElbow], 14, suitBlue);
     strokeLimb([leftElbow, leftHand], 12, suitRed);
@@ -997,7 +973,7 @@
   }
 
   function handleKey(event) {
-    const keys = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", " ", "a", "d", "w", "s"];
+    const keys = ["ArrowLeft", "ArrowRight", "ArrowUp", " ", "a", "d", "w"];
     if (keys.includes(event.key)) event.preventDefault();
     if ((state.mode === "menu" || state.mode === "over") && (event.key === " " || event.key === "Enter")) {
       startGame();
@@ -1010,7 +986,6 @@
     if (event.key === "ArrowLeft" || event.key.toLowerCase() === "a") move(-1);
     if (event.key === "ArrowRight" || event.key.toLowerCase() === "d") move(1);
     if (event.key === "ArrowUp" || event.key.toLowerCase() === "w" || event.key === " ") jump();
-    if (event.key === "ArrowDown" || event.key.toLowerCase() === "s") slide();
   }
 
   canvas.addEventListener("pointerdown", (event) => {
@@ -1028,8 +1003,6 @@
       move(dx > 0 ? 1 : -1);
     } else if (dy < 0) {
       jump();
-    } else {
-      slide();
     }
   });
 
