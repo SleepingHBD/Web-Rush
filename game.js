@@ -296,26 +296,30 @@
 
     for (const object of state.objects) {
       object.z -= state.speed * dt;
-      // Only collide while a hazard visually overlaps the runner. Once it has
-      // crossed the runner's feet it can no longer cause a delayed hit.
-      if (object.hit || object.z > 0.2 || object.z < 0.14) continue;
-      // Lane changes take effect with the input; visualLane only animates the
-      // character between lanes. Tokens retain visual overlap for collection.
-      const collisionLane = object.kind === "token" ? player.visualLane : player.lane;
-      const sameLane = Math.abs(object.lane - collisionLane) < 0.36;
-      if (!sameLane) continue;
+      if (object.hit) continue;
 
       if (object.kind === "token") {
+        // Tokens use a wide collection area so moving through their visible
+        // edge still feels rewarding.
+        if (object.z > 0.23 || object.z < 0.09) continue;
+        const collected = Math.abs(object.lane - player.visualLane) < 0.48;
+        if (!collected) continue;
         object.hit = true;
         state.webs += 1;
         state.score += 75;
         state.flash = 0.18;
         tone(680 + (state.webs % 4) * 80, 0.07, "sine", 0.045);
       } else {
+        // The danger zone is intentionally smaller than the obstacle artwork.
+        // It is centered where the hazard crosses the runner's feet and ends
+        // before the object appears to have passed.
+        if (object.z > 0.185 || object.z < 0.15) continue;
+        const sameLane = Math.abs(object.lane - player.lane) < 0.28;
+        if (!sameLane) continue;
         const avoided =
-          (object.type === "barrier" && player.y > 44) ||
-          (object.type === "vent" && player.y > 34) ||
-          (object.type === "drone" && player.slide > 0);
+          (object.type === "barrier" && player.y > 28) ||
+          (object.type === "vent" && player.y > 20) ||
+          (object.type === "drone" && (player.slide > 0 || player.y > 92));
         if (!avoided) {
           object.hit = true;
           gameOver();
