@@ -12,7 +12,7 @@ Open `index.html` in a browser, or serve the folder with any static file server.
 - `↑` / `W` / `Space` — jump
 - `F` / `X` — fire a web shot during boss fights
 - `P` / `Esc` — pause
-- On touch devices: swipe left/right to move or up to jump
+- On touch devices: swipe left/right to move, up to jump, or down to fire webs during boss fights
 
 At threat level 5, dodge Green Goblin's pumpkin bombs and use web shots to defeat him.
 

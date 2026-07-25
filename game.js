@@ -27,6 +27,7 @@
 
   const BEST_KEY = "web-rush-best";
   const LANES = [-1, 0, 1];
+  const usesTouchControls = window.matchMedia?.("(pointer: coarse)").matches ?? false;
   const state = {
     mode: "menu",
     score: 0,
@@ -265,9 +266,10 @@
     bossName.textContent = isOctopus ? "DOCTOR OCTOPUS" : "GREEN GOBLIN";
     bossAnnouncement.querySelector("span").textContent = isOctopus ? "THREAT LEVEL 10" : "THREAT LEVEL 5";
     bossAnnouncement.querySelector("strong").textContent = isOctopus ? "DOCTOR OCTOPUS!" : "GREEN GOBLIN!";
+    const attackInstruction = usesTouchControls ? "SWIPE DOWN TO FIRE WEBS" : "PRESS F TO FIRE WEBS";
     bossAnnouncement.querySelector("small").textContent = isOctopus
-      ? "DODGE TENTACLES · PRESS F TO FIRE WEBS"
-      : "DODGE BOMBS · PRESS F TO FIRE WEBS";
+      ? `DODGE TENTACLES · ${attackInstruction}`
+      : `DODGE BOMBS · ${attackInstruction}`;
     webShotButton.hidden = false;
     state.flash = 0.9;
     tone(150, 0.35, "sawtooth", 0.065);
@@ -1644,6 +1646,8 @@
       move(dx > 0 ? 1 : -1);
     } else if (dy < 0) {
       jump();
+    } else {
+      fireWeb();
     }
   });
 

@@ -594,6 +594,12 @@ kbd {
   }
 }
 
+@media (hover: none), (pointer: coarse) {
+  .web-shot-button {
+    display: none !important;
+  }
+}
+
 @media (max-height: 650px) {
   .brand-mark {
     width: 34px;
