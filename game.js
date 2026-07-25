@@ -15,6 +15,7 @@
   const scoreNode = document.querySelector("#score");
   const bestNode = document.querySelector("#best");
   const websNode = document.querySelector("#webs");
+  const threatLevelNode = document.querySelector("#threatLevel");
   const finalScoreNode = document.querySelector("#finalScore");
   const finalWebsNode = document.querySelector("#finalWebs");
   const newBestNode = document.querySelector("#newBest");
@@ -27,6 +28,8 @@
     best: Number(localStorage.getItem(BEST_KEY)) || 0,
     webs: 0,
     speed: 0.34,
+    difficulty: 0,
+    level: 1,
     distance: 0,
     spawnTimer: 0,
     tokenTimer: 0,
@@ -123,6 +126,8 @@
     state.score = 0;
     state.webs = 0;
     state.speed = 0.34;
+    state.difficulty = 0;
+    state.level = 1;
     state.distance = 0;
     state.spawnTimer = 0.9;
     state.tokenTimer = 0.45;
@@ -141,6 +146,7 @@
     shell.classList.add("playing");
     scoreNode.textContent = "000000";
     websNode.textContent = "0";
+    threatLevelNode.textContent = "1";
     tone(280, 0.08, "sawtooth", 0.05);
     setTimeout(() => tone(420, 0.12, "sawtooth", 0.04), 70);
   }
@@ -213,15 +219,23 @@
 
     const lane = availableLanes[Math.floor(Math.random() * availableLanes.length)];
     const roll = Math.random();
-    const type = roll < 0.44 ? "barrier" : roll < 0.75 ? "drone" : "vent";
+    const barrierCutoff = 0.5 - state.difficulty * 0.18;
+    const droneCutoff = barrierCutoff + 0.22 + state.difficulty * 0.18;
+    const type = roll < barrierCutoff ? "barrier" : roll < droneCutoff ? "drone" : "vent";
     state.objects.push({ kind: "obstacle", type, lane, z: 1.08, hit: false });
 
-    if (state.speed > 0.43 && Math.random() > 0.63) {
+    const doubleObstacleChance = 0.06 + state.difficulty * 0.56;
+    if (Math.random() < doubleObstacleChance) {
       const options = availableLanes.filter((value) => value !== lane);
       if (options.length > 0) {
         state.objects.push({
           kind: "obstacle",
-          type: Math.random() > 0.5 ? "barrier" : "vent",
+          type:
+            state.difficulty > 0.55 && Math.random() > 0.62
+              ? "drone"
+              : Math.random() > 0.5
+                ? "barrier"
+                : "vent",
           lane: options[Math.floor(Math.random() * options.length)],
           z: 1.12,
           hit: false,
@@ -268,8 +282,18 @@
     if (state.mode !== "playing") return;
 
     state.distance += state.speed * dt * 120;
-    state.score += dt * (90 + state.speed * 160);
-    state.speed = Math.min(0.7, state.speed + dt * 0.005);
+    state.difficulty = Math.min(1, state.distance / 2500);
+    state.speed = 0.34 + state.difficulty * 0.38;
+    state.score += dt * (90 + state.speed * 160) * (1 + state.difficulty * 0.45);
+
+    const nextLevel = Math.min(6, 1 + Math.floor(state.distance / 500));
+    if (nextLevel > state.level) {
+      state.level = nextLevel;
+      state.flash = 0.65;
+      threatLevelNode.textContent = String(state.level);
+      tone(390 + state.level * 55, 0.13, "sawtooth", 0.045);
+      setTimeout(() => tone(480 + state.level * 60, 0.1, "sawtooth", 0.035), 90);
+    }
     state.spawnTimer -= dt;
     state.tokenTimer -= dt;
     player.runCycle += dt * (10 + state.speed * 9);
@@ -287,7 +311,9 @@
 
     if (state.spawnTimer <= 0) {
       spawnObstacle();
-      state.spawnTimer = Math.max(0.62, 1.22 - state.speed * 0.52) + Math.random() * 0.5;
+      const baseGap = 1.18 - state.difficulty * 0.52;
+      const randomGap = 0.46 - state.difficulty * 0.2;
+      state.spawnTimer = baseGap + Math.random() * randomGap;
     }
     if (state.tokenTimer <= 0) {
       const spawned = spawnTokens();
