@@ -16,6 +16,10 @@
   const bestNode = document.querySelector("#best");
   const websNode = document.querySelector("#webs");
   const threatLevelNode = document.querySelector("#threatLevel");
+  const bossHud = document.querySelector("#bossHud");
+  const bossHealthFill = document.querySelector("#bossHealthFill");
+  const bossAnnouncement = document.querySelector("#bossAnnouncement");
+  const webShotButton = document.querySelector("#webShotButton");
   const finalScoreNode = document.querySelector("#finalScore");
   const finalWebsNode = document.querySelector("#finalWebs");
   const newBestNode = document.querySelector("#newBest");
@@ -34,6 +38,21 @@
     spawnTimer: 0,
     tokenTimer: 0,
     objects: [],
+    webShots: [],
+    boss: {
+      active: false,
+      triggered: false,
+      defeated: false,
+      health: 6,
+      maxHealth: 6,
+      lane: 0,
+      visualLane: 0,
+      moveTimer: 0,
+      attackTimer: 0,
+      introTimer: 0,
+      messageTimer: 0,
+      shotCooldown: 0,
+    },
     skyline: [],
     stars: [],
     shake: 0,
@@ -131,6 +150,21 @@
     state.spawnTimer = 0.9;
     state.tokenTimer = 0.45;
     state.objects = [];
+    state.webShots = [];
+    Object.assign(state.boss, {
+      active: false,
+      triggered: false,
+      defeated: false,
+      health: 6,
+      maxHealth: 6,
+      lane: 0,
+      visualLane: 0,
+      moveTimer: 0,
+      attackTimer: 0,
+      introTimer: 0,
+      messageTimer: 0,
+      shotCooldown: 0,
+    });
     state.shake = 0;
     state.flash = 0;
     player.lane = 0;
@@ -145,6 +179,10 @@
     scoreNode.textContent = "000000";
     websNode.textContent = "0";
     threatLevelNode.textContent = "1";
+    bossHud.hidden = true;
+    bossAnnouncement.hidden = true;
+    webShotButton.hidden = true;
+    bossHealthFill.style.width = "100%";
     tone(280, 0.08, "sawtooth", 0.05);
     setTimeout(() => tone(420, 0.12, "sawtooth", 0.04), 70);
   }
@@ -155,6 +193,9 @@
     state.flash = 1;
     pauseButton.hidden = true;
     shell.classList.remove("playing");
+    bossHud.hidden = true;
+    bossAnnouncement.hidden = true;
+    webShotButton.hidden = true;
     const final = Math.floor(state.score);
     const isBest = final > state.best;
     if (isBest) {
@@ -195,6 +236,138 @@
     if (state.mode !== "playing" || player.y > 1) return;
     player.vy = 780;
     tone(330, 0.1, "sine", 0.04);
+  }
+
+  function startBossFight() {
+    if (state.boss.triggered) return;
+    Object.assign(state.boss, {
+      active: true,
+      triggered: true,
+      defeated: false,
+      health: 6,
+      maxHealth: 6,
+      lane: 0,
+      visualLane: 0,
+      moveTimer: 1.1,
+      attackTimer: 2.2,
+      introTimer: 2.4,
+      messageTimer: 0,
+      shotCooldown: 0,
+    });
+    state.objects = [];
+    state.webShots = [];
+    bossHealthFill.style.width = "100%";
+    bossHud.hidden = false;
+    bossAnnouncement.hidden = false;
+    bossAnnouncement.querySelector("span").textContent = "THREAT LEVEL 6";
+    bossAnnouncement.querySelector("strong").textContent = "GREEN GOBLIN!";
+    bossAnnouncement.querySelector("small").textContent = "DODGE BOMBS · PRESS F TO FIRE WEBS";
+    webShotButton.hidden = false;
+    state.flash = 0.9;
+    tone(150, 0.35, "sawtooth", 0.065);
+    setTimeout(() => tone(108, 0.48, "sawtooth", 0.055), 180);
+  }
+
+  function fireWeb() {
+    if (
+      state.mode !== "playing" ||
+      !state.boss.active ||
+      state.boss.introTimer > 0 ||
+      state.boss.shotCooldown > 0
+    ) {
+      return;
+    }
+    state.boss.shotCooldown = 0.48;
+    state.webShots.push({ lane: player.lane, progress: 0 });
+    webShotButton.classList.add("cooldown");
+    tone(560, 0.08, "triangle", 0.045);
+  }
+
+  function throwPumpkinBomb() {
+    const firstLane = Math.random() < 0.6 ? player.lane : LANES[Math.floor(Math.random() * LANES.length)];
+    state.objects.push({
+      kind: "obstacle",
+      type: "pumpkin",
+      lane: firstLane,
+      z: 0.82,
+      hit: false,
+    });
+
+    if (state.boss.health <= 3 && Math.random() < 0.42) {
+      const otherLanes = LANES.filter((lane) => lane !== firstLane);
+      state.objects.push({
+        kind: "obstacle",
+        type: "pumpkin",
+        lane: otherLanes[Math.floor(Math.random() * otherLanes.length)],
+        z: 0.88,
+        hit: false,
+      });
+    }
+    tone(135, 0.12, "square", 0.035);
+  }
+
+  function defeatBoss() {
+    state.boss.active = false;
+    state.boss.defeated = true;
+    state.boss.messageTimer = 2.2;
+    state.webShots = [];
+    state.objects = [];
+    state.score += 3000;
+    state.flash = 1;
+    state.shake = 10;
+    state.spawnTimer = 1.4;
+    state.tokenTimer = 0.4;
+    bossHud.hidden = true;
+    webShotButton.hidden = true;
+    bossAnnouncement.hidden = false;
+    bossAnnouncement.querySelector("span").textContent = "CITY SAVED";
+    bossAnnouncement.querySelector("strong").textContent = "GOBLIN DEFEATED!";
+    bossAnnouncement.querySelector("small").textContent = "+3,000 BONUS";
+    tone(420, 0.13, "sawtooth", 0.05);
+    setTimeout(() => tone(560, 0.16, "sawtooth", 0.05), 110);
+    setTimeout(() => tone(720, 0.22, "sawtooth", 0.045), 230);
+  }
+
+  function updateBoss(dt) {
+    const boss = state.boss;
+    boss.introTimer = Math.max(0, boss.introTimer - dt);
+    boss.shotCooldown = Math.max(0, boss.shotCooldown - dt);
+    boss.visualLane += (boss.lane - boss.visualLane) * Math.min(1, dt * 4.5);
+    webShotButton.classList.toggle("cooldown", boss.shotCooldown > 0);
+
+    if (boss.introTimer > 0) return;
+    bossAnnouncement.hidden = true;
+    boss.moveTimer -= dt;
+    boss.attackTimer -= dt;
+
+    if (boss.moveTimer <= 0) {
+      const choices = LANES.filter((lane) => lane !== boss.lane);
+      boss.lane = choices[Math.floor(Math.random() * choices.length)];
+      boss.moveTimer = 0.85 + Math.random() * 0.65;
+    }
+    if (boss.attackTimer <= 0) {
+      throwPumpkinBomb();
+      boss.attackTimer = 0.72 + Math.random() * 0.42;
+    }
+
+    for (const shot of state.webShots) {
+      shot.progress += dt * 1.75;
+      if (shot.progress < 1) continue;
+      shot.done = true;
+      if (Math.abs(shot.lane - boss.visualLane) < 0.5) {
+        boss.health -= 1;
+        bossHealthFill.style.width = `${(boss.health / boss.maxHealth) * 100}%`;
+        state.score += 350;
+        state.flash = 0.5;
+        state.shake = 5;
+        tone(240, 0.1, "square", 0.05);
+        if (boss.health <= 0) {
+          defeatBoss();
+          return;
+        }
+      }
+    }
+    state.webShots = state.webShots.filter((shot) => !shot.done);
   }
 
   function spawnObstacle() {
@@ -285,6 +458,7 @@
       threatLevelNode.textContent = String(state.level);
       tone(390 + state.level * 55, 0.13, "sawtooth", 0.045);
       setTimeout(() => tone(480 + state.level * 60, 0.1, "sawtooth", 0.035), 90);
+      if (state.level === 6) startBossFight();
     }
     state.spawnTimer -= dt;
     state.tokenTimer -= dt;
@@ -299,15 +473,24 @@
         player.vy = 0;
       }
     }
-    if (state.spawnTimer <= 0) {
-      spawnObstacle();
-      const baseGap = 1.18 - state.difficulty * 0.52;
-      const randomGap = 0.46 - state.difficulty * 0.2;
-      state.spawnTimer = baseGap + Math.random() * randomGap;
+    if (state.boss.active) {
+      updateBoss(dt);
+    } else {
+      if (state.spawnTimer <= 0) {
+        spawnObstacle();
+        const baseGap = 1.18 - state.difficulty * 0.52;
+        const randomGap = 0.46 - state.difficulty * 0.2;
+        state.spawnTimer = baseGap + Math.random() * randomGap;
+      }
+      if (state.tokenTimer <= 0) {
+        const spawned = spawnTokens();
+        state.tokenTimer = spawned ? 1.5 + Math.random() * 1.8 : 0.3;
+      }
     }
-    if (state.tokenTimer <= 0) {
-      const spawned = spawnTokens();
-      state.tokenTimer = spawned ? 1.5 + Math.random() * 1.8 : 0.3;
+
+    if (state.boss.messageTimer > 0) {
+      state.boss.messageTimer = Math.max(0, state.boss.messageTimer - dt);
+      if (state.boss.messageTimer === 0) bossAnnouncement.hidden = true;
     }
 
     for (const object of state.objects) {
@@ -335,7 +518,8 @@
         const avoided =
           (object.type === "barrier" && player.y > 28) ||
           (object.type === "vent" && player.y > 20) ||
-          (object.type === "drone" && player.y > 26);
+          (object.type === "drone" && player.y > 26) ||
+          (object.type === "pumpkin" && player.y > 24);
         if (!avoided) {
           object.hit = true;
           gameOver();
@@ -582,6 +766,41 @@
         ctx.lineTo(18, y);
         ctx.stroke();
       }
+    } else if (object.type === "pumpkin") {
+      ctx.translate(0, -24);
+      ctx.shadowColor = "#ff7a18";
+      ctx.shadowBlur = 14;
+      ctx.fillStyle = "#ff7a18";
+      ctx.strokeStyle = "#321309";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(0, 0, 22, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = "#bd3d0b";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 10, 20, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = "#ffe342";
+      ctx.beginPath();
+      ctx.moveTo(-14, -6);
+      ctx.lineTo(-5, -3);
+      ctx.lineTo(-13, 2);
+      ctx.closePath();
+      ctx.moveTo(14, -6);
+      ctx.lineTo(5, -3);
+      ctx.lineTo(13, 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = "#ffe342";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(0, 3, 13, 0.25, Math.PI - 0.25);
+      ctx.stroke();
+      ctx.fillStyle = "#4d7d20";
+      ctx.fillRect(-3, -29, 6, 10);
     } else {
       // The drone is a low rooftop hazard now and is cleared by jumping.
       ctx.translate(0, -22);
@@ -609,6 +828,199 @@
       ctx.fillRect(40, -17, 21, 5);
     }
     ctx.restore();
+  }
+
+  function bossScreenPosition() {
+    const laneSpread = Math.min(state.width * 0.2, 155);
+    return {
+      x: state.width / 2 + state.boss.visualLane * laneSpread,
+      y: Math.max(185, state.height * 0.31),
+    };
+  }
+
+  function drawBoss(time) {
+    if (!state.boss.active) return;
+    const position = bossScreenPosition();
+    const scale = Math.max(0.72, Math.min(1.12, state.height / 760));
+    const bob = Math.sin(time * 0.004) * 7;
+    const hurt = state.flash > 0.25;
+
+    ctx.save();
+    ctx.translate(position.x, position.y + bob);
+    ctx.scale(scale, scale);
+
+    // Purple bat glider.
+    ctx.fillStyle = "#48206d";
+    ctx.strokeStyle = "#080b15";
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(-78, 26);
+    ctx.quadraticCurveTo(-42, 7, -9, 20);
+    ctx.quadraticCurveTo(0, 28, 9, 20);
+    ctx.quadraticCurveTo(42, 7, 78, 26);
+    ctx.lineTo(45, 43);
+    ctx.quadraticCurveTo(0, 34, -45, 43);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "#9c5bd1";
+    ctx.beginPath();
+    ctx.moveTo(-65, 26);
+    ctx.lineTo(-18, 24);
+    ctx.lineTo(-42, 35);
+    ctx.closePath();
+    ctx.moveTo(65, 26);
+    ctx.lineTo(18, 24);
+    ctx.lineTo(42, 35);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#ff9d22";
+    ctx.beginPath();
+    ctx.moveTo(-43, 42);
+    ctx.lineTo(-31, 61 + Math.sin(time * 0.02) * 5);
+    ctx.lineTo(-20, 40);
+    ctx.moveTo(43, 42);
+    ctx.lineTo(31, 61 + Math.cos(time * 0.02) * 5);
+    ctx.lineTo(20, 40);
+    ctx.fill();
+
+    // Goblin body, boots, and tunic.
+    ctx.strokeStyle = "#080b15";
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.lineWidth = 14;
+    ctx.beginPath();
+    ctx.moveTo(-10, 2);
+    ctx.lineTo(-23, 29);
+    ctx.moveTo(10, 2);
+    ctx.lineTo(23, 29);
+    ctx.stroke();
+    ctx.strokeStyle = "#6d3a94";
+    ctx.lineWidth = 9;
+    ctx.stroke();
+    ctx.fillStyle = hurt ? "#caff78" : "#73bd3d";
+    ctx.strokeStyle = "#080b15";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(-20, -39);
+    ctx.quadraticCurveTo(0, -49, 20, -39);
+    ctx.lineTo(16, 8);
+    ctx.quadraticCurveTo(0, 17, -16, 8);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "#743d9c";
+    ctx.beginPath();
+    ctx.moveTo(-20, -28);
+    ctx.lineTo(20, -28);
+    ctx.lineTo(16, 8);
+    ctx.quadraticCurveTo(0, 17, -16, 8);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Arms and clawed gloves.
+    ctx.strokeStyle = "#080b15";
+    ctx.lineWidth = 13;
+    ctx.beginPath();
+    ctx.moveTo(-16, -34);
+    ctx.lineTo(-36, -8);
+    ctx.lineTo(-49, 8);
+    ctx.moveTo(16, -34);
+    ctx.lineTo(36, -8);
+    ctx.lineTo(49, 8);
+    ctx.stroke();
+    ctx.strokeStyle = "#78c645";
+    ctx.lineWidth = 8;
+    ctx.stroke();
+    ctx.fillStyle = "#78c645";
+    for (const side of [-1, 1]) {
+      ctx.beginPath();
+      ctx.arc(side * 49, 8, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#080b15";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // Pointed hood and green face.
+    ctx.fillStyle = "#6f3795";
+    ctx.strokeStyle = "#080b15";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(-17, -62);
+    ctx.quadraticCurveTo(-3, -92, 18, -106);
+    ctx.quadraticCurveTo(8, -78, 17, -61);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = hurt ? "#dcff8c" : "#86d64b";
+    ctx.beginPath();
+    ctx.ellipse(0, -57, 19, 23, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-16, -60);
+    ctx.lineTo(-29, -54);
+    ctx.lineTo(-16, -48);
+    ctx.moveTo(16, -60);
+    ctx.lineTo(29, -54);
+    ctx.lineTo(16, -48);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "#ffe33f";
+    ctx.beginPath();
+    ctx.moveTo(-13, -65);
+    ctx.lineTo(-4, -62);
+    ctx.lineTo(-12, -57);
+    ctx.moveTo(13, -65);
+    ctx.lineTo(4, -62);
+    ctx.lineTo(12, -57);
+    ctx.fill();
+    ctx.strokeStyle = "#32114e";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-8, -46);
+    ctx.quadraticCurveTo(0, -39, 9, -47);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawWebShots() {
+    if (!state.boss.active) return;
+    const bossPosition = bossScreenPosition();
+    const startY = state.height * 0.82;
+    for (const shot of state.webShots) {
+      const t = Math.min(1, shot.progress);
+      const startP = perspective(0.08);
+      const startX = laneX(shot.lane, startP);
+      const endX = state.width / 2 + shot.lane * Math.min(state.width * 0.2, 155);
+      const x = startX + (endX - startX) * t;
+      const y = startY + (bossPosition.y - startY) * t;
+      const radius = 5 + t * 10;
+      ctx.save();
+      ctx.strokeStyle = "rgba(255,255,255,.75)";
+      ctx.lineWidth = 2 + t * 2;
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      ctx.quadraticCurveTo(x + Math.sin(t * 22) * 15, y + 35, x, y);
+      ctx.stroke();
+      ctx.fillStyle = "#f7fff4";
+      ctx.strokeStyle = "#8ed9ef";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      for (let i = 0; i < 4; i += 1) {
+        const angle = (Math.PI * i) / 4;
+        ctx.beginPath();
+        ctx.moveTo(x - Math.cos(angle) * radius, y - Math.sin(angle) * radius);
+        ctx.lineTo(x + Math.cos(angle) * radius, y + Math.sin(angle) * radius);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
   }
 
   function drawPlayer() {
@@ -936,12 +1348,14 @@
     }
     drawBackground(time);
     drawRoad();
+    drawBoss(time);
 
     const sorted = [...state.objects].sort((a, b) => b.z - a.z);
     for (const object of sorted) {
       if (object.kind === "token") drawToken(object, time);
       else drawObstacle(object);
     }
+    drawWebShots();
     drawPlayer();
     drawSpeedLines();
 
@@ -973,7 +1387,7 @@
   }
 
   function handleKey(event) {
-    const keys = ["ArrowLeft", "ArrowRight", "ArrowUp", " ", "a", "d", "w"];
+    const keys = ["ArrowLeft", "ArrowRight", "ArrowUp", " ", "a", "d", "w", "f", "x"];
     if (keys.includes(event.key)) event.preventDefault();
     if ((state.mode === "menu" || state.mode === "over") && (event.key === " " || event.key === "Enter")) {
       startGame();
@@ -986,6 +1400,7 @@
     if (event.key === "ArrowLeft" || event.key.toLowerCase() === "a") move(-1);
     if (event.key === "ArrowRight" || event.key.toLowerCase() === "d") move(1);
     if (event.key === "ArrowUp" || event.key.toLowerCase() === "w" || event.key === " ") jump();
+    if (event.key.toLowerCase() === "f" || event.key.toLowerCase() === "x") fireWeb();
   }
 
   canvas.addEventListener("pointerdown", (event) => {
@@ -1009,6 +1424,7 @@
   startButton.addEventListener("click", startGame);
   restartButton.addEventListener("click", startGame);
   pauseButton.addEventListener("click", togglePause);
+  webShotButton.addEventListener("click", fireWeb);
   soundButton.addEventListener("click", () => {
     state.muted = !state.muted;
     soundIcon.textContent = state.muted ? "×" : "♪";
