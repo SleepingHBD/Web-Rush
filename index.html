@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#07101f" />
+    <meta
+      name="description"
+      content="Web Rush — a fast, comic-inspired rooftop runner built with HTML, CSS, and JavaScript."
+    />
+    <title>Web Rush — Rooftop Runner</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="game-shell">
+      <canvas id="game" aria-label="Web Rush endless rooftop runner"></canvas>
+
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="Web Rush home">
+          <span class="brand-mark" aria-hidden="true">🕸</span>
+          <span>WEB <b>RUSH</b></span>
+        </a>
+        <button id="soundButton" class="icon-button" type="button" aria-label="Toggle sound">
+          <span id="soundIcon" aria-hidden="true">♪</span>
+        </button>
+      </header>
+
+      <section class="hud" aria-label="Game statistics">
+        <div class="stat">
+          <span>SCORE</span>
+          <strong id="score">000000</strong>
+        </div>
+        <div class="stat right">
+          <span>BEST</span>
+          <strong id="best">000000</strong>
+        </div>
+      </section>
+
+      <div class="web-count" aria-label="Web tokens collected">
+        <span aria-hidden="true">🕸</span>
+        <strong id="webs">0</strong>
+      </div>
+
+      <section id="startScreen" class="panel start-panel">
+        <p class="eyebrow">THE CITY NEEDS YOU</p>
+        <h1>OWN THE<br /><span>ROOFTOPS.</span></h1>
+        <p class="intro">Dodge danger. Collect web tokens.<br />Keep the city safe.</p>
+        <button id="startButton" class="primary-button" type="button">
+          <span>START RUN</span>
+          <i aria-hidden="true">→</i>
+        </button>
+        <div class="controls">
+          <span><kbd>←</kbd><kbd>→</kbd> MOVE</span>
+          <span><kbd>↑</kbd> JUMP</span>
+          <span><kbd>↓</kbd> SLIDE</span>
+        </div>
+        <p class="mobile-hint">Swipe to move, jump, and slide</p>
+      </section>
+
+      <section id="gameOverScreen" class="panel game-over-panel" hidden>
+        <p class="eyebrow">RUN ENDED</p>
+        <h2>CAUGHT IN<br /><span>THE CROSSFIRE!</span></h2>
+        <div class="result-grid">
+          <div><span>SCORE</span><strong id="finalScore">0</strong></div>
+          <div><span>WEB TOKENS</span><strong id="finalWebs">0</strong></div>
+        </div>
+        <p id="newBest" class="new-best" hidden>NEW ROOFTOP RECORD!</p>
+        <button id="restartButton" class="primary-button" type="button">
+          <span>RUN AGAIN</span>
+          <i aria-hidden="true">↻</i>
+        </button>
+      </section>
+
+      <button id="pauseButton" class="pause-button" type="button" aria-label="Pause game" hidden>Ⅱ</button>
+      <div id="pauseLabel" class="pause-label" hidden>PAUSED</div>
+    </main>
+
+    <script src="game.js"></script>
+  </body>
+</html>
