@@ -354,9 +354,18 @@
       }
     }
 
-    // At z 0.035 the object's ground point reaches the bottom edge. Remove it
-    // immediately so perspective clamping cannot leave a frozen hazard behind.
-    state.objects = state.objects.filter((object) => object.z > 0.035 && !object.hit);
+    state.objects = state.objects.filter((object) => {
+      if (object.hit) return false;
+      if (object.kind === "obstacle" && object.type === "drone") {
+        // Drones float above their ground anchor, so remove them based on their
+        // own lower edge rather than the rooftop point beneath them.
+        const p = perspective(object.z);
+        const droneBottom = p.y + (-70 + 18) * p.scale * 1.3;
+        return droneBottom < state.height;
+      }
+      // Ground objects leave as soon as their anchor reaches the bottom edge.
+      return object.z > 0.035;
+    });
     state.flash = Math.max(0, state.flash - dt * 2.4);
     state.shake = Math.max(0, state.shake - dt * 42);
     scoreNode.textContent = pad(state.score);
@@ -366,7 +375,10 @@
   function perspective(z) {
     const horizon = state.height * 0.43;
     const bottom = state.height * 1.03;
-    const eased = Math.pow(1 - Math.max(0, Math.min(1, z)), 1.65);
+    // Airborne objects may travel slightly below the ground anchor before
+    // their artwork reaches the screen edge.
+    const depth = Math.max(-0.3, Math.min(1, z));
+    const eased = Math.pow(1 - depth, 1.65);
     return {
       y: horizon + (bottom - horizon) * eased,
       scale: 0.12 + eased * 1.18,
